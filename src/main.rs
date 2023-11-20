@@ -13,9 +13,9 @@ fn main() {
 fn run_worker() {
     let handle = thread::spawn(move || {
 
-        let runtime = tokio::runtime::Builder::new_current_thread()
+        let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
-            .max_blocking_threads(1)
+            .max_blocking_threads(8)
             .build()
             .unwrap();
 
@@ -25,7 +25,7 @@ fn run_worker() {
             worker.init().await;
             worker.exec("main();");
             worker.run_event_loop().await;
-        })
+        });
 
     });
 
@@ -55,7 +55,7 @@ impl Worker {
 
         let main_worker = MainWorker::bootstrap_from_options(
             main_module.clone(),
-            get_permissions(),
+            PermissionsContainer::new(Permissions::default()),
             options,
         );
 
@@ -73,17 +73,4 @@ impl Worker {
     pub async fn run_event_loop(&mut self) {
         self.1.run_event_loop(false).await.unwrap();
     }
-}
-
-fn get_permissions() -> PermissionsContainer {
-    PermissionsContainer::new(Permissions {
-        read: Permissions::new_read(&Some(vec![]), &None, false).unwrap(),
-        write: Permissions::new_write(&Some(vec![]), &None, false).unwrap(),
-        env: Permissions::new_env(&Some(vec![]), &None, false).unwrap(),
-        sys: Permissions::new_sys(&Some(vec![]), &None, false).unwrap(),
-        run: Permissions::new_run(&Some(vec![]), &None, false).unwrap(),
-        ffi: Permissions::new_ffi(&Some(vec![]), &None, false).unwrap(),
-        hrtime: Permissions::new_hrtime(true, false),
-        net: Permissions::new_net(&Some(vec![]), &None, false).unwrap(),
-    })
 }
